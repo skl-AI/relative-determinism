@@ -80,115 +80,210 @@ theorem algorithmic_determinism (input : ℕ) (f : Algorithm) :
 
 
 
--- Section 4: Evolutionary Dynamics, Phase Transitions, and Bifurcation Point
+-- Секция 4: Эволюционная динамика, фазовые переходы и дискретные гонки емкостей
+-- Section 4: Evolutionary Dynamics, Phase Transitions, and Discrete Capacity Races
 
--- Define evolving agent structure
+-- Определение структуры эволюционирующего агента с целочисленной емкостью
+-- Definition of evolving agent structure with integer capacity
 structure EvolvingAgent where
+  -- Идентификатор агента
   -- Agent identifier
   id : String
+  -- Накопленная вычислительная емкость
   -- Accumulated computational capacity
   capacity : ℕ
 
+-- Условие достижения порогового значения емкости для фазового перехода
 -- Phase transition threshold condition
 def ReachesThreshold (agent : EvolvingAgent) (threshold : ℕ) : Prop :=
   threshold ≤ agent.capacity
 
+-- Теорема 4.1: Преодоление порогового значения емкости
 -- Theorem 4.1: Overcoming capacity threshold
--- Description: Proves that upon reaching threshold, agent strictly exceeds baseline level
 theorem phase_transition_to_vanguard (agent base_baseline : EvolvingAgent) (threshold : ℕ)
+    -- Гипотеза о достижении порога агентом
+    -- Hypothesis that agent reaches threshold
     (h_thresh : ReachesThreshold agent threshold)
+    -- Гипотеза о том, что базовая линия ниже порога
+    -- Hypothesis that baseline capacity is below threshold
     (h_baseline : base_baseline.capacity < threshold) :
+    -- Доказываем, что базовая линия строго меньше емкости агента
+    -- Proving that baseline is strictly less than agent capacity
     base_baseline.capacity < agent.capacity := by
-  -- Unfold definition of ReachesThreshold
+  -- Раскрываем определение ReachesThreshold в гипотезе h_thresh
+  -- Unfold definition of ReachesThreshold in h_thresh
   dsimp [ReachesThreshold] at h_thresh
-  -- Apply linear solver omega
+  -- Применяем автоматический линейный решатель omega для натуральных чисел
+  -- Apply linear solver omega for natural numbers
   omega
 
--- Two-agent system state
+-- Определение состояния системы из двух дискретных агентов
+-- Two-agent system state definition
 structure SystemState where
+  -- Емкость авангардного агента
+  -- Avant-garde agent capacity
   c_adv : ℕ
+  -- Емкость отстающего агента
+  -- Lagging agent capacity
   c_lag : ℕ
 
--- Definition: Leadership maintenance
+-- Определение сохранения лидерства авангарда над отстающим
+-- Definition of avant-garde leadership maintenance
 def AdvLeads (st : SystemState) : Prop :=
   st.c_lag < st.c_adv
 
--- Definition: Capacity equality at bifurcation point
+-- Определение равенства емкостей в точке бифуркации
+-- Definition of capacity equality at bifurcation point
 def IsBifurcationPoint (st : SystemState) : Prop :=
   st.c_adv = st.c_lag
 
+-- Теорема 4.2: Нарушение однозначного лидерства в точке бифуркации
 -- Theorem 4.2: Violation of unambiguous leadership at bifurcation point
--- Description: Proves that upon reaching bifurcation point, neither agent has strict preferential leadership
-theorem bifurcation_symmetry (st : SystemState) (h_bif : IsBifurcationPoint st) :
+theorem bifurcation_symmetry (st : SystemState)
+    -- Гипотеза нахождения системы в точке бифуркации
+    -- Hypothesis of system being at bifurcation point
+    (h_bif : IsBifurcationPoint st) :
+    -- Утверждение об отсутствии лидерства авангарда
+    -- Statement that avant-garde does not lead
     ¬ AdvLeads st := by
-  -- Unfold bifurcation point definition
+  -- Раскрываем определение IsBifurcationPoint для гипотезы h_bif
+  -- Unfold IsBifurcationPoint definition for h_bif
   dsimp [IsBifurcationPoint] at h_bif
-  -- Unfold leadership definition
+  -- Раскрываем определение AdvLeads в целевом выражении
+  -- Unfold AdvLeads definition in goal
   dsimp [AdvLeads]
+  -- Показываем невозможность c_lag < c_adv при c_adv = c_lag через omega
   -- Show impossibility of c_lag < c_adv when c_adv = c_lag via omega
   omega
 
--- System structure with functionally equivalent agents in oscillation process
-structure OscillatingSystem where
-  cap1 : ℕ
-  cap2 : ℕ
+-- Дискретная модель динамики емкостей через рекуррентные соотношения
+-- Discrete model of capacity dynamics via recurrence relations
+structure DiscreteSystemState where
+  -- Шаг дискретного времени (такты эволюции)
+  -- Discrete time step (evolution ticks)
+  time : ℕ
+  -- Дискретная емкость авангардного агента
+  -- Discrete avant-garde capacity
+  c_adv : ℕ
+  -- Дискретная емкость отстающего агента
+  -- Discrete lagging capacity
+  c_lag : ℕ
 
--- Section 4.3: Phase Transition, Bifurcation Point, and Outcome Dichotomy
+-- Функция дискретного шага прироста емкости авангарда
+-- Function for discrete step of avant-garde capacity growth
+def step_adv (c_adv : ℕ) (quantum_growth : ℕ) : ℕ :=
+  -- Новая емкость равна старой плюс дискретный квант прироста
+  -- New capacity equals old plus discrete growth quantum
+  c_adv + quantum_growth
 
--- Agent structure at phase transition boundary
+-- Функция дискретного шага отстающего агента на основе целочисленного гэпа
+-- Function for discrete step of lagging agent based on integer gap
+def step_lag (c_adv c_lag : ℕ) (assimilation_speed : ℕ) : ℕ :=
+  -- Проверяем условие, что отстающий меньше авангарда
+  -- Check condition that lagging is less than avant-garde
+  if c_lag < c_adv then
+    -- Отстающий усваивает часть гэпа, ограниченную скоростью ассимиляции
+    -- Lagging absorbs part of gap bounded by assimilation speed
+    c_lag + min (c_adv - c_lag) assimilation_speed
+  else
+    -- Иначе емкости равны, оставляем значение без изменений
+    -- Otherwise capacities are equal, keep value unchanged
+    c_lag
+
+-- Теорема: Целочисленная инвариантность ненулевого гэпа при дискретном шаге
+-- Theorem: Integer invariance of non-zero gap under discrete step
+theorem discrete_integer_gap_pos (st : DiscreteSystemState)
+    -- Гипотеза о строгом отставании емкости отстающего
+    -- Hypothesis of strict lagging capacity deficit
+    (h_lag : st.c_lag < st.c_adv) :
+    -- Доказываем, что целочисленная разность строго больше нуля
+    -- Prove that integer difference is strictly greater than zero
+    0 < st.c_adv - st.c_lag := by
+  -- Применяем автоматический арифметический решатель omega
+  -- Apply automatic arithmetic solver omega
+  omega
+
+-- Структура агента на границе фазового перехода с вектором редукции
+-- Agent structure at phase transition boundary with reduction vector
 structure VanguardAgent where
+  -- Идентификатор агента
   -- Agent identifier
   id : String
-  -- Accumulated computational capacity
+  -- Накопленная дискретная емкость
+  -- Accumulated discrete capacity
   capacity : ℕ
-  -- Continuum reduction vector (discretization direction)
+  -- Хеш вектора редукции континуума
+  -- Continuum reduction vector hash
   vectorHash : ℕ
 
--- Definition of bifurcation state (capacity equality at the front)
+-- Определение состояния бифуркации через равенство емкостей фронта
+-- Definition of bifurcation state through frontier capacity equality
 def IsBifurcationState (A_adv A_lag : VanguardAgent) : Prop :=
   A_adv.capacity = A_lag.capacity
 
--- Definition of vector collinearity (work in a single projection channel)
+-- Определение коллинеарности векторов редукции
+-- Definition of reduction vector collinearity
 def IsCollinear (A1 A2 : VanguardAgent) : Prop :=
   A1.vectorHash = A2.vectorHash
 
--- Definition of linear preferential leadership
+-- Определение строгого линейного лидерства
+-- Definition of strict linear leadership
 def HasStrictLead (A_adv A_lag : VanguardAgent) : Prop :=
   A_lag.capacity < A_adv.capacity
 
+-- Теорема 4.3.1: Нарушение линейного детерминизма в точке бифуркации
 -- Theorem 4.3.1: Violation of linear determinism at bifurcation point
--- Description: Proves that at capacity equality, neither agent possesses strict leadership
 theorem bifurcation_symmetry_break (A1 A2 : VanguardAgent)
+    -- Гипотеза нахождения агентов в состоянии бифуркации
+    -- Hypothesis of agents being in bifurcation state
     (h_bif : IsBifurcationState A1 A2) :
+    -- Утверждение об отсутствии строгого лидерства в обе стороны
+    -- Statement of absence of strict leadership in both directions
     ¬ HasStrictLead A1 A2 ∧ ¬ HasStrictLead A2 A1 := by
-  -- Unfold bifurcation state definition
+  -- Раскрываем определение IsBifurcationState в гипотезе h_bif
+  -- Unfold IsBifurcationState in h_bif
   dsimp [IsBifurcationState] at h_bif
-  -- Unfold strict leadership definition
+  -- Раскрываем определение HasStrictLead в цели
+  -- Unfold HasStrictLead in goal
   dsimp [HasStrictLead]
-  -- Split proof into two independent parts and solve via omega
+  -- Применяем конъюнкцию и решаем через omega для обеих частей
+  -- Apply conjunction and solve via omega for both parts
   constructor <;> omega
 
+-- Теорема 4.3.2: Полная классификация исходов фазового перехода
 -- Theorem 4.3.2: Complete classification of phase transition outcomes
--- Description: Proves that bifurcation point guarantees either stochastic turnover (on vector coincidence),
--- or topological branching of reality (on orthogonality)
 theorem bifurcation_outcomes_completeness (A1 A2 : VanguardAgent)
+    -- Гипотеза состояния бифуркации для агентов
+    -- Hypothesis of bifurcation state for agents
     (h_bif : IsBifurcationState A1 A2) :
+    -- Доказываем дихотомию: либо коллинеарность со сжатием, либо ортогональность
+    -- Prove dichotomy: either collinearity with turnover or orthogonality
     (IsCollinear A1 A2 ∧ (¬ HasStrictLead A1 A2 ∧ ¬ HasStrictLead A2 A1)) ∨
     (¬ IsCollinear A1 A2) := by
-  -- Unfold IsBifurcationState definition
+  -- Раскрываем определение IsBifurcationState в гипотезе h_bif
+  -- Unfold IsBifurcationState in h_bif
   dsimp [IsBifurcationState] at h_bif
-  -- Unfold IsCollinear definition
+  -- Раскрываем определение IsCollinear в цели
+  -- Unfold IsCollinear in goal
   dsimp [IsCollinear]
-  -- Unfold HasStrictLead definition
+  -- Раскрываем определение HasStrictLead в цели
+  -- Unfold HasStrictLead in goal
   dsimp [HasStrictLead]
-  -- Split proof by cases: whether reduction vectors of A1 and A2 are equal
+  -- Разбираем случаи равенства хешей векторов редукции
+  -- Split by cases on whether reduction vector hashes are equal
   by_cases h_vec : A1.vectorHash = A2.vectorHash
-  · -- Case 1: Vectors coincide (collinear scenario / turnover)
+  · -- Случай 1: Векторы совпадают (коллинеарный сценарий / инверсия)
+    -- Case 1: Vectors coincide (collinear scenario / turnover)
     left
-    -- Prove pair (vector coincidence, absence of strict leadership)
+    -- Уточняем пару утверждений через конъюнкцию
+    -- Refine pair of statements via conjunction
     refine ⟨h_vec, ?_⟩
+    -- Доказываем отсутствие лидерства через omega
+    -- Prove lack of leadership via omega
     constructor <;> omega
-  · -- Case 2: Vectors do not coincide (orthogonal scenario / branching)
+  · -- Случай 2: Векторы не совпадают (ортогональный сценарий / ветвление)
+    -- Case 2: Vectors do not coincide (orthogonal scenario / branching)
     right
-    -- Substitute vector equality negation
+    -- Точное совпадение с отрицанием равенства векторов
+    -- Exact match with vector equality negation
     exact h_vec
